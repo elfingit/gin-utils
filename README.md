@@ -54,7 +54,7 @@ if req == nil {
 ## CI/CD
 
 The project uses GitHub Actions for continuous integration. On every pull request to master:
-- Tests run on Go versions 1.21, 1.22, and 1.23
+- Tests run on Go versions 1.25
 - Code is checked with golangci-lint
 - Test coverage is calculated and reported
 - Merge is blocked if tests fail
