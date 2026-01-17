@@ -1,5 +1,9 @@
 # gin-utils
 
+[![Tests](https://github.com/elfingit/gin-utils/actions/workflows/test.yml/badge.svg)](https://github.com/elfingit/gin-utils/actions/workflows/test.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/elfingit/gin-utils)](https://goreportcard.com/report/github.com/elfingit/gin-utils)
+[![codecov](https://codecov.io/gh/elfingit/gin-utils/branch/master/graph/badge.svg)](https://codecov.io/gh/elfingit/gin-utils)
+
 Utilities library for Gin Framework with support for request validation, response formatting, and route management.
 
 ## Features
@@ -46,6 +50,16 @@ if req == nil {
 ...	
 	
 ```
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration. On every pull request to master:
+- Tests run on Go versions 1.21, 1.22, and 1.23
+- Code is checked with golangci-lint
+- Test coverage is calculated and reported
+- Merge is blocked if tests fail
+
+See [Branch Protection Setup](.github/BRANCH_PROTECTION.md) for configuration details.
 
 ## Testing
 
