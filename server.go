@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ type TransportServer struct {
 	cfg    *cfg
 	engine *gin.Engine
 	server *http.Server
+	mu     sync.RWMutex
 }
 
 func NewTransportServer(opts ...Option) *TransportServer {
@@ -97,15 +99,27 @@ func (s *TransportServer) RegisterHandlers(handlers ...Handler) {
 
 func (s *TransportServer) Start() error {
 	addr := fmt.Sprintf("%s:%d", s.cfg.host, s.cfg.port)
+
+	s.mu.Lock()
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.engine,
 		ReadHeaderTimeout: 3 * time.Second,
 	}
+	srv := s.server
+	s.mu.Unlock()
 
-	return s.server.ListenAndServe()
+	return srv.ListenAndServe()
 }
 
 func (s *TransportServer) Stop(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
+	s.mu.RLock()
+	srv := s.server
+	s.mu.RUnlock()
+
+	if srv == nil {
+		return nil
+	}
+
+	return srv.Shutdown(ctx)
 }
