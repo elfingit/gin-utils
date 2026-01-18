@@ -12,7 +12,7 @@ Utilities library for Gin Framework with support for request validation, respons
 - 🔒 Built-in middleware support for authentication and permission checking
 - ✅ Automatic request validation and binding using generics
 - 📦 Unified response format with envelope pattern support
-- 🧪 Comprehensive test coverage (95.9%)
+- 🧪 Comprehensive test coverage (96.5%)
 
 ## Examples of usage
 
@@ -81,8 +81,8 @@ go tool cover -html=coverage.out -o coverage.html
 
 ### Test Coverage
 
-- **Main package**: 91.7%
+- **Main package**: 92.9%
 - **middleware**: 100%
 - **middleware/request**: 100%
 - **middleware/response**: 100%
-- **Total coverage**: 95.9%
+- **Total coverage**: 96.5%

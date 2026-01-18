@@ -316,7 +316,7 @@ func TestTransportServerStartStop(t *testing.T) {
 	server := NewTransportServer(
 		WithMode(MODE_TEST),
 		WithHost("localhost"),
-		WithPort(0), // Random port
+		WithPort(18080), // Fixed port for testing
 	)
 
 	server.RegisterHandlers()
@@ -327,8 +327,22 @@ func TestTransportServerStartStop(t *testing.T) {
 		errChan <- server.Start()
 	}()
 
-	// Give server time to start
-	time.Sleep(100 * time.Millisecond)
+	// Wait for server to be ready by attempting connections
+	serverReady := false
+	for i := 0; i < 50; i++ {
+		time.Sleep(20 * time.Millisecond)
+		server.mu.RLock()
+		ready := server.server != nil
+		server.mu.RUnlock()
+		if ready {
+			serverReady = true
+			break
+		}
+	}
+
+	if !serverReady {
+		t.Fatal("server did not start in time")
+	}
 
 	// Stop server
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -347,6 +361,25 @@ func TestTransportServerStartStop(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Error("server did not stop in time")
+	}
+}
+
+func TestTransportServerStopWithoutStart(t *testing.T) {
+	server := NewTransportServer(
+		WithMode(MODE_TEST),
+		WithHost("localhost"),
+		WithPort(18081),
+	)
+
+	server.RegisterHandlers()
+
+	// Try to stop server that was never started
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := server.Stop(ctx)
+	if err != nil {
+		t.Errorf("expected no error when stopping non-started server, got %v", err)
 	}
 }
 
