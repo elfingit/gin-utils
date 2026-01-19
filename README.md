@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/elfingit/gin-utils/actions/workflows/test.yml/badge.svg)](https://github.com/elfingit/gin-utils/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/elfingit/gin-utils)](https://goreportcard.com/report/github.com/elfingit/gin-utils)
-[![codecov](https://codecov.io/gh/elfingit/gin-utils/branch/master/graph/badge.svg)](https://codecov.io/gh/elfingit/gin-utils)
+[![codecov](https://codecov.io/github/elfingit/gin-utils/graph/badge.svg?token=T9F2RHFD5Q)](https://codecov.io/github/elfingit/gin-utils)
 
 Utilities library for Gin Framework with support for request validation, response formatting, and route management.
 
