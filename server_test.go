@@ -447,6 +447,59 @@ func TestTransportServerCustomCORSMiddleware(t *testing.T) {
 	}
 }
 
+func TestTransportServerAuthProtectedNonGetRoutes(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{
+			name:   "auth protected POST route",
+			method: http.MethodPost,
+			path:   "/api/v1/protected-post",
+		},
+		{
+			name:   "auth protected PUT route",
+			method: http.MethodPut,
+			path:   "/api/v1/protected-put",
+		},
+		{
+			name:   "auth protected DELETE route",
+			method: http.MethodDelete,
+			path:   "/api/v1/protected-delete",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := NewTransportServer(WithMode(MODE_TEST))
+
+			handler := &mockHandler{
+				routes: []Route{
+					{
+						Uri:             tt.path[len("/api/v1"):],
+						Method:          tt.method,
+						IsAuthProtected: true,
+						Handler: func(c *gin.Context) {
+							c.JSON(http.StatusOK, gin.H{"message": "ok"})
+						},
+					},
+				},
+			}
+
+			server.RegisterHandlers(handler)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, tt.path, nil)
+			server.engine.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+			}
+		})
+	}
+}
+
 func TestTransportServerPermissionMiddleware(t *testing.T) {
 	permissionCalled := false
 	permissionMiddleware := func(c *gin.Context) {
