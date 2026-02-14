@@ -150,6 +150,29 @@ func TestWithPermissionMiddleware(t *testing.T) {
 	}
 }
 
+func TestWithCorsMiddleware(t *testing.T) {
+	called := false
+	middleware := func(c *gin.Context) {
+		called = true
+		c.Next()
+	}
+
+	c := &cfg{}
+	opt := WithCorsMiddleware(middleware)
+	opt(c)
+
+	if c.corsMiddleware == nil {
+		t.Error("expected corsMiddleware to be set")
+	}
+
+	ctx := &gin.Context{}
+	c.corsMiddleware(ctx)
+
+	if !called {
+		t.Error("expected middleware to be called")
+	}
+}
+
 func TestMultipleOptions(t *testing.T) {
 	expectedHost := "0.0.0.0"
 	expectedPort := uint(9000)

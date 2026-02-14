@@ -28,6 +28,7 @@ func NewTransportServer(opts ...Option) *TransportServer {
 		permissionMiddleware: func(c *gin.Context) {
 			c.Next()
 		},
+		corsMiddleware: corsMiddleware(),
 	}
 
 	for _, opt := range opts {
@@ -43,10 +44,17 @@ func NewTransportServer(opts ...Option) *TransportServer {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	engine := gin.New()
+	engine.Use(c.corsMiddleware)
+
 	return &TransportServer{
 		cfg:    c,
-		engine: gin.New(),
+		engine: engine,
 	}
+}
+
+func (s *TransportServer) GetEngine() *gin.Engine {
+	return s.engine
 }
 
 func (s *TransportServer) RegisterHandlers(handlers ...Handler) {
@@ -122,4 +130,20 @@ func (s *TransportServer) Stop(ctx context.Context) error {
 	}
 
 	return srv.Shutdown(ctx)
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,HEAD,OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,Accept,Authorization,X-Requested-With")
+
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
 }

@@ -14,6 +14,7 @@ type cfg struct {
 	mode                 string
 	authMiddleware       func(c *gin.Context)
 	permissionMiddleware func(c *gin.Context)
+	corsMiddleware       func(c *gin.Context)
 }
 
 type Option func(*cfg)
@@ -45,5 +46,11 @@ func WithAuthMiddleware(middleware func(c *gin.Context)) Option {
 func WithPermissionMiddleware(middleware func(c *gin.Context)) Option {
 	return func(c *cfg) {
 		c.permissionMiddleware = middleware
+	}
+}
+
+func WithCorsMiddleware(middleware func(c *gin.Context)) Option {
+	return func(c *cfg) {
+		c.corsMiddleware = middleware
 	}
 }

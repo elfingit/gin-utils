@@ -383,6 +383,70 @@ func TestTransportServerStopWithoutStart(t *testing.T) {
 	}
 }
 
+func TestTransportServerGetEngine(t *testing.T) {
+	server := NewTransportServer(WithMode(MODE_TEST))
+
+	if server.GetEngine() == nil {
+		t.Fatal("expected engine to be initialized")
+	}
+
+	if server.GetEngine() != server.engine {
+		t.Error("expected GetEngine to return internal engine instance")
+	}
+}
+
+func TestTransportServerGlobalCORSMiddleware(t *testing.T) {
+	server := NewTransportServer(WithMode(MODE_TEST))
+
+	t.Run("adds CORS headers to regular request", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/unknown", nil)
+		server.engine.ServeHTTP(w, req)
+
+		if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+			t.Errorf("expected Access-Control-Allow-Origin to be '*', got %q", got)
+		}
+
+		if got := w.Header().Get("Access-Control-Allow-Methods"); got == "" {
+			t.Error("expected Access-Control-Allow-Methods to be set")
+		}
+	})
+
+	t.Run("handles preflight OPTIONS globally", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodOptions, "/unknown", nil)
+		server.engine.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("expected status %d, got %d", http.StatusNoContent, w.Code)
+		}
+
+		if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+			t.Errorf("expected Access-Control-Allow-Origin to be '*', got %q", got)
+		}
+	})
+}
+
+func TestTransportServerCustomCORSMiddleware(t *testing.T) {
+	customCORS := func(c *gin.Context) {
+		c.Writer.Header().Set("X-Custom-CORS", "enabled")
+		c.Next()
+	}
+
+	server := NewTransportServer(
+		WithMode(MODE_TEST),
+		WithCorsMiddleware(customCORS),
+	)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/unknown", nil)
+	server.engine.ServeHTTP(w, req)
+
+	if got := w.Header().Get("X-Custom-CORS"); got != "enabled" {
+		t.Errorf("expected X-Custom-CORS to be 'enabled', got %q", got)
+	}
+}
+
 func TestTransportServerPermissionMiddleware(t *testing.T) {
 	permissionCalled := false
 	permissionMiddleware := func(c *gin.Context) {
