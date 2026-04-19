@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -113,12 +114,17 @@ func TestValidationErrorResponseFormat(t *testing.T) {
 
 	ValidatorErrorResponse(c, ve)
 
-	// Verify the response contains expected JSON structure
-	body := w.Body.String()
+	var response ValidationErrorResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid json response, got error: %v", err)
+	}
 
-	// Check for field names in response
-	if len(body) == 0 {
-		t.Error("expected non-empty response body")
+	if response.Message != "The given data was invalid." {
+		t.Fatalf("unexpected message: %s", response.Message)
+	}
+
+	if len(response.Errors) == 0 {
+		t.Fatal("expected validation errors map to be non-empty")
 	}
 
 	// Verify content type
@@ -162,8 +168,28 @@ func TestValidationErrorResponseWithMultipleErrors(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusUnprocessableEntity, w.Code)
 	}
 
-	body := w.Body.String()
-	if len(body) == 0 {
-		t.Error("expected non-empty response body")
+	var response ValidationErrorResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("expected valid json response, got error: %v", err)
+	}
+
+	if response.Message != "The given data was invalid." {
+		t.Fatalf("unexpected message: %s", response.Message)
+	}
+
+	if _, ok := response.Errors["email"]; !ok {
+		t.Fatalf("expected email errors in response: %#v", response.Errors)
+	}
+
+	if _, ok := response.Errors["age"]; !ok {
+		t.Fatalf("expected age errors in response: %#v", response.Errors)
+	}
+
+	if _, ok := response.Errors["username"]; !ok {
+		t.Fatalf("expected username errors in response: %#v", response.Errors)
+	}
+
+	if _, ok := response.Errors["password"]; !ok {
+		t.Fatalf("expected password errors in response: %#v", response.Errors)
 	}
 }
