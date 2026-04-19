@@ -11,8 +11,8 @@ import (
 )
 
 type TestRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Email        string `json:"email" binding:"required,email"`
+	SecretPhrase string `json:"secret_phrase" binding:"required,min=8"`
 }
 
 type TestURIRequest struct {
@@ -31,8 +31,8 @@ func TestBindAndValidate(t *testing.T) {
 		{
 			name: "valid request",
 			request: TestRequest{
-				Email:    "test@example.com",
-				Password: "password123",
+				Email:        "test@example.com",
+				SecretPhrase: "phrase123",
 			},
 			expectedStatus: http.StatusOK,
 			shouldAbort:    false,
@@ -40,17 +40,17 @@ func TestBindAndValidate(t *testing.T) {
 		{
 			name: "invalid email",
 			request: TestRequest{
-				Email:    "invalid-email",
-				Password: "password123",
+				Email:        "invalid-email",
+				SecretPhrase: "phrase123",
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
 			shouldAbort:    true,
 		},
 		{
-			name: "password too short",
+			name: "secret phrase too short",
 			request: TestRequest{
-				Email:    "test@example.com",
-				Password: "short",
+				Email:        "test@example.com",
+				SecretPhrase: "short",
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
 			shouldAbort:    true,
@@ -58,8 +58,8 @@ func TestBindAndValidate(t *testing.T) {
 		{
 			name: "missing required fields",
 			request: TestRequest{
-				Email:    "",
-				Password: "",
+				Email:        "",
+				SecretPhrase: "",
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
 			shouldAbort:    true,
@@ -122,8 +122,8 @@ func TestGetRequest(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		expectedReq := &TestRequest{
-			Email:    "test@example.com",
-			Password: "password123",
+			Email:        "test@example.com",
+			SecretPhrase: "phrase123",
 		}
 
 		c.Set(requestKeyCtx, expectedReq)
@@ -138,8 +138,8 @@ func TestGetRequest(t *testing.T) {
 			t.Errorf("expected email %q, got %q", expectedReq.Email, req.Email)
 		}
 
-		if req.Password != expectedReq.Password {
-			t.Errorf("expected password %q, got %q", expectedReq.Password, req.Password)
+		if req.SecretPhrase != expectedReq.SecretPhrase {
+			t.Errorf("expected secret phrase %q, got %q", expectedReq.SecretPhrase, req.SecretPhrase)
 		}
 	})
 
@@ -322,8 +322,8 @@ func TestBindAndValidateIntegration(t *testing.T) {
 	t.Run("full integration test", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(TestRequest{
-			Email:    "test@example.com",
-			Password: "password123",
+			Email:        "test@example.com",
+			SecretPhrase: "phrase123",
 		})
 
 		req, _ := http.NewRequest(http.MethodPost, "/test", bytes.NewBuffer(body))
