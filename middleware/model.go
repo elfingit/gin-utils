@@ -1,6 +1,6 @@
 package middleware
 
 type ValidationErrorResponse struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
+	Message string              `json:"message"`
+	Errors  map[string][]string `json:"errors"`
 }

@@ -3,6 +3,8 @@ package middleware
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -21,13 +23,32 @@ func IsValidationError(err error) (bool, *validator.ValidationErrors) {
 
 func ValidatorErrorResponse(c *gin.Context, err *validator.ValidationErrors) {
 	vErr := *err
-	out := make([]ValidationErrorResponse, 0, len(vErr))
+	out := ValidationErrorResponse{
+		Message: "The given data was invalid.",
+		Errors:  make(map[string][]string, len(vErr)),
+	}
+
 	for _, fe := range vErr {
-		out = append(out, ValidationErrorResponse{
-			Field:   fe.Field(),
-			Message: fe.Tag(),
-		})
+		fieldName := toLowerFirst(fe.Field())
+		switch fe.Tag() {
+		case "required":
+			out.Errors[fieldName] = append(out.Errors[fieldName], "The "+fieldName+" field is required.")
+		case "email":
+			out.Errors[fieldName] = append(out.Errors[fieldName], "The "+fieldName+" field must be a valid email address.")
+		default:
+			out.Errors[fieldName] = append(out.Errors[fieldName], "The "+fieldName+" field is invalid.")
+		}
 	}
 
 	c.AbortWithStatusJSON(http.StatusUnprocessableEntity, out)
+}
+
+func toLowerFirst(value string) string {
+	if value == "" {
+		return value
+	}
+
+	runes := []rune(value)
+	runes[0] = unicode.ToLower(runes[0])
+	return strings.TrimSpace(string(runes))
 }
