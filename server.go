@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -29,6 +30,9 @@ func NewTransportServer(opts ...Option) *TransportServer {
 			c.Next()
 		},
 		corsMiddleware: corsMiddleware(),
+		baseContext: func(net.Listener) context.Context {
+			return context.Background()
+		},
 	}
 
 	for _, opt := range opts {
@@ -113,6 +117,7 @@ func (s *TransportServer) Start() error {
 		Addr:              addr,
 		Handler:           s.engine,
 		ReadHeaderTimeout: 3 * time.Second,
+		BaseContext:       s.cfg.baseContext,
 	}
 	srv := s.server
 	s.mu.Unlock()

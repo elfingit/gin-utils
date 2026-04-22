@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"net"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -197,5 +199,24 @@ func TestMultipleOptions(t *testing.T) {
 	}
 	if c.mode != expectedMode {
 		t.Errorf("expected mode %q, got %q", expectedMode, c.mode)
+	}
+}
+
+func TestWithBaseContext(t *testing.T) {
+	expectedCtx := context.WithValue(context.Background(), "key", "value")
+	baseContext := func(net.Listener) context.Context {
+		return expectedCtx
+	}
+
+	c := &cfg{}
+	opt := WithBaseContext(baseContext)
+	opt(c)
+
+	if c.baseContext == nil {
+		t.Fatal("expected baseContext to be set")
+	}
+
+	if got := c.baseContext(nil); got != expectedCtx {
+		t.Error("expected configured baseContext to return provided context")
 	}
 }

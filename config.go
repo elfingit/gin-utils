@@ -1,6 +1,11 @@
 package http
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"net"
+
+	"github.com/gin-gonic/gin"
+)
 
 const (
 	MODE_PROD = "prod"
@@ -15,6 +20,7 @@ type cfg struct {
 	authMiddleware       func(c *gin.Context)
 	permissionMiddleware func(c *gin.Context)
 	corsMiddleware       func(c *gin.Context)
+	baseContext          func(listener net.Listener) context.Context
 }
 
 type Option func(*cfg)
@@ -52,5 +58,11 @@ func WithPermissionMiddleware(middleware func(c *gin.Context)) Option {
 func WithCorsMiddleware(middleware func(c *gin.Context)) Option {
 	return func(c *cfg) {
 		c.corsMiddleware = middleware
+	}
+}
+
+func WithBaseContext(baseContext func(listener net.Listener) context.Context) Option {
+	return func(c *cfg) {
+		c.baseContext = baseContext
 	}
 }
