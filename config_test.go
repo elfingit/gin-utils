@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type testContextKey string
+
 func TestWithHost(t *testing.T) {
 	tests := []struct {
 		name string
@@ -203,7 +205,7 @@ func TestMultipleOptions(t *testing.T) {
 }
 
 func TestWithBaseContext(t *testing.T) {
-	expectedCtx := context.WithValue(context.Background(), "key", "value")
+	expectedCtx := context.WithValue(context.Background(), testContextKey("key"), "value")
 	baseContext := func(net.Listener) context.Context {
 		return expectedCtx
 	}
