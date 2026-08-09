@@ -5,11 +5,27 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+var supportedMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodPatch:   {},
+	http.MethodDelete:  {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
+}
+
+type groupKey struct {
+	path            string
+	isAuthProtected bool
+}
 
 type TransportServer struct {
 	cfg    *cfg
@@ -66,45 +82,41 @@ func (s *TransportServer) RegisterHandlers(handlers ...Handler) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Not found"})
 	})
 
-	apiGroup := s.engine.Group("/api/v1")
-	authProtectedGroup := apiGroup.Group("/")
-	authProtectedGroup.Use(s.cfg.authMiddleware)
-	if s.cfg.permissionMiddleware != nil {
-		authProtectedGroup.Use(s.cfg.permissionMiddleware)
+	groups := map[groupKey]*gin.RouterGroup{}
+	groupFor := func(key groupKey) *gin.RouterGroup {
+		if g, ok := groups[key]; ok {
+			return g
+		}
+
+		var middlewares []gin.HandlerFunc
+		if key.isAuthProtected {
+			if s.cfg.authMiddleware != nil {
+				middlewares = append(middlewares, s.cfg.authMiddleware)
+			}
+
+			if s.cfg.permissionMiddleware != nil {
+				middlewares = append(middlewares, s.cfg.permissionMiddleware)
+			}
+		}
+
+		g := s.engine.Group(key.path, middlewares...)
+		groups[key] = g
+
+		return g
 	}
 
 	for _, handler := range handlers {
 		for _, route := range handler.GetRoutes() {
+			method := strings.ToUpper(route.Method)
+			if _, ok := supportedMethods[method]; !ok {
+				continue
+			}
 
 			handlersChain := append([]gin.HandlerFunc{}, route.Middlewares...)
 			handlersChain = append(handlersChain, route.Handler)
 
-			switch route.Method {
-			case http.MethodGet:
-				if route.IsAuthProtected {
-					authProtectedGroup.GET(route.Uri, handlersChain...)
-				} else {
-					apiGroup.GET(route.Uri, handlersChain...)
-				}
-			case http.MethodPost:
-				if route.IsAuthProtected {
-					authProtectedGroup.POST(route.Uri, handlersChain...)
-				} else {
-					apiGroup.POST(route.Uri, handlersChain...)
-				}
-			case http.MethodPut:
-				if route.IsAuthProtected {
-					authProtectedGroup.PUT(route.Uri, handlersChain...)
-				} else {
-					apiGroup.PUT(route.Uri, handlersChain...)
-				}
-			case http.MethodDelete:
-				if route.IsAuthProtected {
-					authProtectedGroup.DELETE(route.Uri, handlersChain...)
-				} else {
-					apiGroup.DELETE(route.Uri, handlersChain...)
-				}
-			}
+			group := groupFor(groupKey{path: route.Group, isAuthProtected: route.IsAuthProtected})
+			group.Handle(method, route.Uri, handlersChain...)
 		}
 	}
 }

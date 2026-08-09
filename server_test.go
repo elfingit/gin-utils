@@ -103,6 +103,7 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register GET route",
 			routes: []Route{
 				{
+					Group:           "/api/v1",
 					Uri:             "/test",
 					Method:          http.MethodGet,
 					IsAuthProtected: false,
@@ -120,6 +121,7 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register POST route",
 			routes: []Route{
 				{
+					Group:           "/api/v1",
 					Uri:             "/create",
 					Method:          http.MethodPost,
 					IsAuthProtected: false,
@@ -137,6 +139,7 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register PUT route",
 			routes: []Route{
 				{
+					Group:           "/api/v1",
 					Uri:             "/update",
 					Method:          http.MethodPut,
 					IsAuthProtected: false,
@@ -154,6 +157,7 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register DELETE route",
 			routes: []Route{
 				{
+					Group:           "/api/v1",
 					Uri:             "/delete",
 					Method:          http.MethodDelete,
 					IsAuthProtected: false,
@@ -207,6 +211,7 @@ func TestTransportServerAuthProtectedRoute(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
+				Group:           "/api/v1",
 				Uri:             "/protected",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
@@ -282,6 +287,7 @@ func TestTransportServerWithMiddlewares(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
+				Group:           "/api/v1",
 				Uri:             "/test",
 				Method:          http.MethodGet,
 				IsAuthProtected: false,
@@ -477,6 +483,7 @@ func TestTransportServerAuthProtectedNonGetRoutes(t *testing.T) {
 			handler := &mockHandler{
 				routes: []Route{
 					{
+						Group:           "/api/v1",
 						Uri:             tt.path[len("/api/v1"):],
 						Method:          tt.method,
 						IsAuthProtected: true,
@@ -523,6 +530,7 @@ func TestTransportServerPermissionMiddleware(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
+				Group:           "/api/v1",
 				Uri:             "/admin",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
@@ -566,4 +574,283 @@ func TestTransportServerPermissionMiddleware(t *testing.T) {
 			t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 		}
 	})
+}
+
+func TestTransportServerDifferentGroups(t *testing.T) {
+	server := NewTransportServer(WithMode(MODE_TEST))
+
+	handler := &mockHandler{
+		routes: []Route{
+			{
+				Group:  "/api/v1/users",
+				Uri:    "/list",
+				Method: http.MethodGet,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"version": "v1"})
+				},
+			},
+			{
+				Group:  "/api/v2/users",
+				Uri:    "/list",
+				Method: http.MethodGet,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"version": "v2"})
+				},
+			},
+		},
+	}
+
+	server.RegisterHandlers(handler)
+
+	tests := []struct {
+		name         string
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "v1 group",
+			path:         "/api/v1/users/list",
+			expectedBody: `{"version":"v1"}`,
+		},
+		{
+			name:         "v2 group",
+			path:         "/api/v2/users/list",
+			expectedBody: `{"version":"v2"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, tt.path, nil)
+			server.engine.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+			}
+
+			if w.Body.String() != tt.expectedBody {
+				t.Errorf("expected body %q, got %q", tt.expectedBody, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestTransportServerMixedAuthInSameGroup(t *testing.T) {
+	authCalls := 0
+	server := NewTransportServer(
+		WithMode(MODE_TEST),
+		WithAuthMiddleware(func(c *gin.Context) {
+			authCalls++
+			c.Next()
+		}),
+	)
+
+	handler := &mockHandler{
+		routes: []Route{
+			{
+				Group:           "/api/v1",
+				Uri:             "/public",
+				Method:          http.MethodGet,
+				IsAuthProtected: false,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"message": "public"})
+				},
+			},
+			{
+				Group:           "/api/v1",
+				Uri:             "/private",
+				Method:          http.MethodGet,
+				IsAuthProtected: true,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"message": "private"})
+				},
+			},
+		},
+	}
+
+	server.RegisterHandlers(handler)
+
+	t.Run("public route skips auth middleware", func(t *testing.T) {
+		authCalls = 0
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/public", nil)
+		server.engine.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		if authCalls != 0 {
+			t.Errorf("expected auth middleware not to be called, got %d calls", authCalls)
+		}
+	})
+
+	t.Run("protected route runs auth middleware", func(t *testing.T) {
+		authCalls = 0
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/private", nil)
+		server.engine.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		if authCalls != 1 {
+			t.Errorf("expected auth middleware to be called once, got %d calls", authCalls)
+		}
+	})
+}
+
+func TestTransportServerReusesAuthProtectedGroup(t *testing.T) {
+	authCalls := 0
+	permissionCalls := 0
+
+	server := NewTransportServer(
+		WithMode(MODE_TEST),
+		WithAuthMiddleware(func(c *gin.Context) {
+			authCalls++
+			c.Next()
+		}),
+		WithPermissionMiddleware(func(c *gin.Context) {
+			permissionCalls++
+			c.Next()
+		}),
+	)
+
+	firstHandler := &mockHandler{
+		routes: []Route{
+			{
+				Group:           "/api/v1",
+				Uri:             "/first",
+				Method:          http.MethodGet,
+				IsAuthProtected: true,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"message": "first"})
+				},
+			},
+		},
+	}
+
+	secondHandler := &mockHandler{
+		routes: []Route{
+			{
+				Group:           "/api/v1",
+				Uri:             "/second",
+				Method:          http.MethodGet,
+				IsAuthProtected: true,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"message": "second"})
+				},
+			},
+		},
+	}
+
+	server.RegisterHandlers(firstHandler, secondHandler)
+
+	for _, path := range []string{"/api/v1/first", "/api/v1/second"} {
+		t.Run(path, func(t *testing.T) {
+			authCalls = 0
+			permissionCalls = 0
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, path, nil)
+			server.engine.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+			}
+
+			if authCalls != 1 {
+				t.Errorf("expected auth middleware to be called once, got %d calls", authCalls)
+			}
+
+			if permissionCalls != 1 {
+				t.Errorf("expected permission middleware to be called once, got %d calls", permissionCalls)
+			}
+		})
+	}
+}
+
+func TestTransportServerEmptyGroup(t *testing.T) {
+	server := NewTransportServer(WithMode(MODE_TEST))
+
+	handler := &mockHandler{
+		routes: []Route{
+			{
+				Uri:    "/login",
+				Method: http.MethodPost,
+				Handler: func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{"message": "logged in"})
+				},
+			},
+		},
+	}
+
+	server.RegisterHandlers(handler)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/login", nil)
+	server.engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestTransportServerMethodHandling(t *testing.T) {
+	tests := []struct {
+		name           string
+		routeMethod    string
+		requestMethod  string
+		expectedStatus int
+	}{
+		{
+			name:           "PATCH route is registered",
+			routeMethod:    http.MethodPatch,
+			requestMethod:  http.MethodPatch,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "lowercase method is normalized",
+			routeMethod:    "get",
+			requestMethod:  http.MethodGet,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "unsupported method is skipped",
+			routeMethod:    "FOO",
+			requestMethod:  http.MethodGet,
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := NewTransportServer(WithMode(MODE_TEST))
+
+			handler := &mockHandler{
+				routes: []Route{
+					{
+						Group:  "/api/v1",
+						Uri:    "/resource",
+						Method: tt.routeMethod,
+						Handler: func(c *gin.Context) {
+							c.JSON(http.StatusOK, gin.H{"message": "ok"})
+						},
+					},
+				},
+			}
+
+			server.RegisterHandlers(handler)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.requestMethod, "/api/v1/resource", nil)
+			server.engine.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedStatus {
+				t.Errorf("expected status %d, got %d", tt.expectedStatus, w.Code)
+			}
+		})
+	}
 }
