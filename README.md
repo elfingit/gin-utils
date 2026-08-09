@@ -28,14 +28,16 @@ type LoginRequest struct {
 func (h *AuthHandler) GetRoutes() []pkghttp.Route {
     return []pkghttp.Route{
         {
+            Group:           "/api/v1/auth",
             Method:          http.MethodPost,
             IsAuthProtected: false,
             Uri:             "/login",
             Handler:         h.login,
             Middlewares: []gin.HandlerFunc{
-            request.BindAndValidate[payload.LoginRequest](),
+                request.BindAndValidate[payload.LoginRequest](),
+            },
         },
-    },
+    }
 }
 
 ...
@@ -50,6 +52,37 @@ if req == nil {
 ...	
 	
 ```
+
+### Route groups and auth
+
+`Group` is the full route prefix counted from the root, so `Group: "/api/v1/users"` with `Uri: "/list"` is served at `/api/v1/users/list`. An empty `Group` registers the route at the root.
+
+Routes are collected into gin router groups by their `Group` value, and `IsAuthProtected: true` puts a route into a separate protected group of the same prefix. The auth and permission middlewares are attached once to that group instead of being repeated for every handler, so protected and public routes can freely share the same prefix:
+
+```go
+func (h *UserHandler) GetRoutes() []pkghttp.Route {
+    return []pkghttp.Route{
+        {
+            Group:           "/api/v1/users",
+            Method:          http.MethodGet,
+            Uri:             "/public",
+            IsAuthProtected: false,
+            Handler:         h.public,
+        },
+        {
+            Group:           "/api/v1/users",
+            Method:          http.MethodGet,
+            Uri:             "/me",
+            IsAuthProtected: true, // auth + permission middlewares run before the handler
+            Handler:         h.me,
+        },
+    }
+}
+```
+
+The resulting middleware order for a protected route is: CORS, auth, permission, route `Middlewares`, handler.
+
+Supported methods are `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` and `OPTIONS`. Method values are case-insensitive, and routes with an unsupported method are skipped during registration.
 
 ## CI/CD
 

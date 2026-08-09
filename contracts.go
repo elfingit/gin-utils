@@ -3,6 +3,7 @@ package http
 import "github.com/gin-gonic/gin"
 
 type Route struct {
+	Group           string
 	Uri             string
 	Method          string
 	Handler         func(c *gin.Context)

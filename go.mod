@@ -1,6 +1,6 @@
 module github.com/elfingit/gin-utils
 
-go 1.25
+go 1.26.5
 
 require (
 	github.com/bytedance/sonic v1.14.0 // indirect
