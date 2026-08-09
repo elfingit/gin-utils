@@ -10,6 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	testEmail        = "test@example.com"
+	testSecretPhrase = "phrase123"
+)
+
 type TestRequest struct {
 	Email        string `json:"email" binding:"required,email"`
 	SecretPhrase string `json:"secret_phrase" binding:"required,min=8"`
@@ -31,8 +36,8 @@ func TestBindAndValidate(t *testing.T) {
 		{
 			name: "valid request",
 			request: TestRequest{
-				Email:        "test@example.com",
-				SecretPhrase: "phrase123",
+				Email:        testEmail,
+				SecretPhrase: testSecretPhrase,
 			},
 			expectedStatus: http.StatusOK,
 			shouldAbort:    false,
@@ -41,7 +46,7 @@ func TestBindAndValidate(t *testing.T) {
 			name: "invalid email",
 			request: TestRequest{
 				Email:        "invalid-email",
-				SecretPhrase: "phrase123",
+				SecretPhrase: testSecretPhrase,
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
 			shouldAbort:    true,
@@ -49,7 +54,7 @@ func TestBindAndValidate(t *testing.T) {
 		{
 			name: "secret phrase too short",
 			request: TestRequest{
-				Email:        "test@example.com",
+				Email:        testEmail,
 				SecretPhrase: "short",
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
@@ -122,8 +127,8 @@ func TestGetRequest(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		expectedReq := &TestRequest{
-			Email:        "test@example.com",
-			SecretPhrase: "phrase123",
+			Email:        testEmail,
+			SecretPhrase: testSecretPhrase,
 		}
 
 		c.Set(requestKeyCtx, expectedReq)
@@ -322,8 +327,8 @@ func TestBindAndValidateIntegration(t *testing.T) {
 	t.Run("full integration test", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(TestRequest{
-			Email:        "test@example.com",
-			SecretPhrase: "phrase123",
+			Email:        testEmail,
+			SecretPhrase: testSecretPhrase,
 		})
 
 		req, _ := http.NewRequest(http.MethodPost, "/test", bytes.NewBuffer(body))

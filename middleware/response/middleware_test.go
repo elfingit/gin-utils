@@ -9,6 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	testDataKey   = "key"
+	testDataValue = "value"
+)
+
 func TestOK(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -27,11 +32,11 @@ func TestOK(t *testing.T) {
 		{
 			name: "map data",
 			data: map[string]interface{}{
-				"key": "value",
+				testDataKey: testDataValue,
 			},
 			meta: nil,
 			expectedData: map[string]interface{}{
-				"key": "value",
+				testDataKey: testDataValue,
 			},
 		},
 		{
@@ -224,7 +229,7 @@ func TestEnvelopeStructure(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		testData := map[string]string{"key": "value"}
+		testData := map[string]string{testDataKey: testDataValue}
 		OK(c, testData, nil)
 
 		var response map[string]interface{}
@@ -250,7 +255,7 @@ func TestEnvelopeStructure(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		testData := map[string]string{"key": "value"}
+		testData := map[string]string{testDataKey: testDataValue}
 		testMeta := map[string]int{"page": 1}
 		WithMeta(c, testData, testMeta)
 

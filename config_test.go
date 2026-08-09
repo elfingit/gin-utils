@@ -17,11 +17,11 @@ func TestWithHost(t *testing.T) {
 	}{
 		{
 			name: "set localhost",
-			host: "localhost",
+			host: defaultHost,
 		},
 		{
 			name: "set custom host",
-			host: "0.0.0.0",
+			host: testCustomHost,
 		},
 		{
 			name: "set empty host",
@@ -178,7 +178,7 @@ func TestWithCorsMiddleware(t *testing.T) {
 }
 
 func TestMultipleOptions(t *testing.T) {
-	expectedHost := "0.0.0.0"
+	expectedHost := testCustomHost
 	expectedPort := uint(9000)
 	expectedMode := MODE_DEV
 

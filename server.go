@@ -22,6 +22,8 @@ var supportedMethods = map[string]struct{}{
 	http.MethodOptions: {},
 }
 
+const messageKey = "message"
+
 type groupKey struct {
 	path            string
 	isAuthProtected bool
@@ -36,7 +38,7 @@ type TransportServer struct {
 
 func NewTransportServer(opts ...Option) *TransportServer {
 	c := &cfg{
-		host: "localhost",
+		host: defaultHost,
 		port: 8080,
 		mode: MODE_PROD,
 		authMiddleware: func(c *gin.Context) {
@@ -79,7 +81,7 @@ func (s *TransportServer) GetEngine() *gin.Engine {
 
 func (s *TransportServer) RegisterHandlers(handlers ...Handler) {
 	s.engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Not found"})
+		c.JSON(http.StatusNotFound, gin.H{messageKey: "Not found"})
 	})
 
 	groups := map[groupKey]*gin.RouterGroup{}

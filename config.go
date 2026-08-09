@@ -13,6 +13,8 @@ const (
 	MODE_TEST = "test"
 )
 
+const defaultHost = "localhost"
+
 type cfg struct {
 	host                 string
 	port                 uint

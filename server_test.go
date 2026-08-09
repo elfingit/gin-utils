@@ -10,6 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	apiV1Group     = "/api/v1"
+	testCustomHost = "0.0.0.0"
+)
+
 type mockHandler struct {
 	routes []Route
 }
@@ -29,17 +34,17 @@ func TestNewTransportServer(t *testing.T) {
 		{
 			name:         "default configuration",
 			opts:         []Option{},
-			expectedHost: "localhost",
+			expectedHost: defaultHost,
 			expectedPort: 8080,
 			expectedMode: MODE_PROD,
 		},
 		{
 			name: "custom host and port",
 			opts: []Option{
-				WithHost("0.0.0.0"),
+				WithHost(testCustomHost),
 				WithPort(3000),
 			},
-			expectedHost: "0.0.0.0",
+			expectedHost: testCustomHost,
 			expectedPort: 3000,
 			expectedMode: MODE_PROD,
 		},
@@ -48,7 +53,7 @@ func TestNewTransportServer(t *testing.T) {
 			opts: []Option{
 				WithMode(MODE_TEST),
 			},
-			expectedHost: "localhost",
+			expectedHost: defaultHost,
 			expectedPort: 8080,
 			expectedMode: MODE_TEST,
 		},
@@ -57,7 +62,7 @@ func TestNewTransportServer(t *testing.T) {
 			opts: []Option{
 				WithMode(MODE_DEV),
 			},
-			expectedHost: "localhost",
+			expectedHost: defaultHost,
 			expectedPort: 8080,
 			expectedMode: MODE_DEV,
 		},
@@ -103,12 +108,12 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register GET route",
 			routes: []Route{
 				{
-					Group:           "/api/v1",
+					Group:           apiV1Group,
 					Uri:             "/test",
 					Method:          http.MethodGet,
 					IsAuthProtected: false,
 					Handler: func(c *gin.Context) {
-						c.JSON(http.StatusOK, gin.H{"message": "success"})
+						c.JSON(http.StatusOK, gin.H{messageKey: "success"})
 					},
 				},
 			},
@@ -121,12 +126,12 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register POST route",
 			routes: []Route{
 				{
-					Group:           "/api/v1",
+					Group:           apiV1Group,
 					Uri:             "/create",
 					Method:          http.MethodPost,
 					IsAuthProtected: false,
 					Handler: func(c *gin.Context) {
-						c.JSON(http.StatusCreated, gin.H{"message": "created"})
+						c.JSON(http.StatusCreated, gin.H{messageKey: "created"})
 					},
 				},
 			},
@@ -139,12 +144,12 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register PUT route",
 			routes: []Route{
 				{
-					Group:           "/api/v1",
+					Group:           apiV1Group,
 					Uri:             "/update",
 					Method:          http.MethodPut,
 					IsAuthProtected: false,
 					Handler: func(c *gin.Context) {
-						c.JSON(http.StatusOK, gin.H{"message": "updated"})
+						c.JSON(http.StatusOK, gin.H{messageKey: "updated"})
 					},
 				},
 			},
@@ -157,7 +162,7 @@ func TestTransportServerRegisterHandlers(t *testing.T) {
 			name: "register DELETE route",
 			routes: []Route{
 				{
-					Group:           "/api/v1",
+					Group:           apiV1Group,
 					Uri:             "/delete",
 					Method:          http.MethodDelete,
 					IsAuthProtected: false,
@@ -211,12 +216,12 @@ func TestTransportServerAuthProtectedRoute(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/protected",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "protected data"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "protected data"})
 				},
 			},
 		},
@@ -287,12 +292,12 @@ func TestTransportServerWithMiddlewares(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/test",
 				Method:          http.MethodGet,
 				IsAuthProtected: false,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "success"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "success"})
 				},
 				Middlewares: []gin.HandlerFunc{middleware1, middleware2},
 			},
@@ -321,7 +326,7 @@ func TestTransportServerWithMiddlewares(t *testing.T) {
 func TestTransportServerStartStop(t *testing.T) {
 	server := NewTransportServer(
 		WithMode(MODE_TEST),
-		WithHost("localhost"),
+		WithHost(defaultHost),
 		WithPort(18080), // Fixed port for testing
 	)
 
@@ -373,7 +378,7 @@ func TestTransportServerStartStop(t *testing.T) {
 func TestTransportServerStopWithoutStart(t *testing.T) {
 	server := NewTransportServer(
 		WithMode(MODE_TEST),
-		WithHost("localhost"),
+		WithHost(defaultHost),
 		WithPort(18081),
 	)
 
@@ -483,12 +488,12 @@ func TestTransportServerAuthProtectedNonGetRoutes(t *testing.T) {
 			handler := &mockHandler{
 				routes: []Route{
 					{
-						Group:           "/api/v1",
-						Uri:             tt.path[len("/api/v1"):],
+						Group:           apiV1Group,
+						Uri:             tt.path[len(apiV1Group):],
 						Method:          tt.method,
 						IsAuthProtected: true,
 						Handler: func(c *gin.Context) {
-							c.JSON(http.StatusOK, gin.H{"message": "ok"})
+							c.JSON(http.StatusOK, gin.H{messageKey: "ok"})
 						},
 					},
 				},
@@ -530,12 +535,12 @@ func TestTransportServerPermissionMiddleware(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/admin",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "admin data"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "admin data"})
 				},
 			},
 		},
@@ -649,21 +654,21 @@ func TestTransportServerMixedAuthInSameGroup(t *testing.T) {
 	handler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/public",
 				Method:          http.MethodGet,
 				IsAuthProtected: false,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "public"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "public"})
 				},
 			},
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/private",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "private"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "private"})
 				},
 			},
 		},
@@ -721,12 +726,12 @@ func TestTransportServerReusesAuthProtectedGroup(t *testing.T) {
 	firstHandler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/first",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "first"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "first"})
 				},
 			},
 		},
@@ -735,12 +740,12 @@ func TestTransportServerReusesAuthProtectedGroup(t *testing.T) {
 	secondHandler := &mockHandler{
 		routes: []Route{
 			{
-				Group:           "/api/v1",
+				Group:           apiV1Group,
 				Uri:             "/second",
 				Method:          http.MethodGet,
 				IsAuthProtected: true,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "second"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "second"})
 				},
 			},
 		},
@@ -781,7 +786,7 @@ func TestTransportServerEmptyGroup(t *testing.T) {
 				Uri:    "/login",
 				Method: http.MethodPost,
 				Handler: func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "logged in"})
+					c.JSON(http.StatusOK, gin.H{messageKey: "logged in"})
 				},
 			},
 		},
@@ -832,11 +837,11 @@ func TestTransportServerMethodHandling(t *testing.T) {
 			handler := &mockHandler{
 				routes: []Route{
 					{
-						Group:  "/api/v1",
+						Group:  apiV1Group,
 						Uri:    "/resource",
 						Method: tt.routeMethod,
 						Handler: func(c *gin.Context) {
-							c.JSON(http.StatusOK, gin.H{"message": "ok"})
+							c.JSON(http.StatusOK, gin.H{messageKey: "ok"})
 						},
 					},
 				},

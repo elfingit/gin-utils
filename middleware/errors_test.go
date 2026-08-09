@@ -119,7 +119,7 @@ func TestValidationErrorResponseFormat(t *testing.T) {
 		t.Fatalf("expected valid json response, got error: %v", err)
 	}
 
-	if response.Message != "The given data was invalid." {
+	if response.Message != validationFailedMessage {
 		t.Fatalf("unexpected message: %s", response.Message)
 	}
 
@@ -173,7 +173,7 @@ func TestValidationErrorResponseWithMultipleErrors(t *testing.T) {
 		t.Fatalf("expected valid json response, got error: %v", err)
 	}
 
-	if response.Message != "The given data was invalid." {
+	if response.Message != validationFailedMessage {
 		t.Fatalf("unexpected message: %s", response.Message)
 	}
 

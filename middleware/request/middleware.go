@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const errorKey = "error"
+
 type requestKey struct{}
 type uriRequestKey struct{}
 
@@ -25,7 +27,7 @@ func BindAndValidate[T any]() gin.HandlerFunc {
 			}
 
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": gin.H{
+				errorKey: gin.H{
 					"message": "Invalid request data",
 				},
 			})
@@ -43,7 +45,7 @@ func BindAndValidateURI[T any]() gin.HandlerFunc {
 
 		if err := c.ShouldBindUri(&req); err != nil {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-				"error": "Not found",
+				errorKey: "Not found",
 			})
 
 			return
@@ -58,7 +60,7 @@ func GetRequest[T any](c *gin.Context) *T {
 	v, ok := c.Get(requestKeyCtx)
 	if !ok {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "Request not found",
+			errorKey: "Request not found",
 		})
 		return nil
 	}
@@ -68,7 +70,7 @@ func GetRequest[T any](c *gin.Context) *T {
 	}
 
 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-		"error": "Invalid type of request",
+		errorKey: "Invalid type of request",
 	})
 
 	return nil
@@ -78,7 +80,7 @@ func GetUriRequest[T any](c *gin.Context) *T {
 	v, ok := c.Get(uriRequestKeyCtx)
 	if !ok {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"error": "Request not found",
+			errorKey: "Request not found",
 		})
 		return nil
 	}
@@ -88,7 +90,7 @@ func GetUriRequest[T any](c *gin.Context) *T {
 	}
 
 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-		"error": "Invalid type of request",
+		errorKey: "Invalid type of request",
 	})
 
 	return nil

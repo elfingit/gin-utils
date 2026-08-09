@@ -11,6 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const validationFailedMessage = "The given data was invalid."
+
 func IsValidationError(err error) (bool, *validator.ValidationErrors) {
 	var ve validator.ValidationErrors
 
@@ -24,7 +26,7 @@ func IsValidationError(err error) (bool, *validator.ValidationErrors) {
 func ValidatorErrorResponse(c *gin.Context, err *validator.ValidationErrors) {
 	vErr := *err
 	out := ValidationErrorResponse{
-		Message: "The given data was invalid.",
+		Message: validationFailedMessage,
 		Errors:  make(map[string][]string, len(vErr)),
 	}
 
